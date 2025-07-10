@@ -452,9 +452,7 @@ export class R2Registry implements Registry {
 
     // Follow symlink if present
     if (res.customMetadata && symlinkHeader in res.customMetadata) {
-      const symlinkObj = await this.env.REGISTRY.get(`${name}/blobs/${tag}`);
-      if (!symlinkObj) return { exists: false };
-      const layerPath = await symlinkObj.text();
+      const layerPath = res.customMetadata[symlinkHeader];
       const [linkName, linkDigest] = layerPath.split("/blobs/");
       if (linkName == name && linkDigest == tag) {
         return { exists: false };

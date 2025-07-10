@@ -517,6 +517,7 @@ v2Router.head("/:name+/blobs/:tag", async (req, env: Env) => {
 
       if (response.exists) {
         return new Response(null, {
+          status: 200,
           headers: {
             "Content-Length": response.size.toString(),
             "Docker-Content-Digest": response.digest,
@@ -529,6 +530,7 @@ v2Router.head("/:name+/blobs/:tag", async (req, env: Env) => {
   }
 
   return new Response(null, {
+    status: 200,
     headers: {
       "Content-Length": layerExistsResponse.size.toString(),
       "Docker-Content-Digest": layerExistsResponse.digest,
