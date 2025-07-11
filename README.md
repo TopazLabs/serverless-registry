@@ -111,10 +111,10 @@ It is recommended to create an IAM user with the `AmazonEC2ContainerRegistryRead
 
 ```
 [env.production.vars]
-REGISTRIES_JSON = "[{ \"registry\": \"https://<account-id>.dkr.ecr.<region>.amazonaws.com\", \"accessKeyId_env\": \"AWS_ACCESS_KEY\", \"secretAccessKey_env\": \"AWS_SECRET_KEY\" }]"
+REGISTRIES_JSON = "[{ \"registry\": \"https://<account-id>.dkr.ecr.<region>.amazonaws.com\", \"accessKeyId_env\": \"AWS_ACCESS_KEY_ID\", \"secretAccessKey_env\": \"AWS_SECRET_ACCESS_KEY\" }]"
 ```
 
-Then setup the secrets with `npx wrangler secret put AWS_ACCESS_KEY --env production` and `npx wrangler secret put AWS_SECRET_KEY --env production`.
+Then setup the secrets with `npx wrangler secret put AWS_ACCESS_KEY_ID --env production` and `npx wrangler secret put AWS_SECRET_ACCESS_KEY --env production`.
 
 The trick is always looking for how you would login in Docker for
 the target registry and setup the credentials.
