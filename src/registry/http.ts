@@ -180,7 +180,6 @@ export class RegistryHTTPClient implements Registry {
   }
 
   accessKeyId(): string {
-    console.log(`configuration: ${JSON.stringify(this.configuration)}`);
     if (!("accessKeyId_env" in this.configuration) || this.configuration.accessKeyId_env === undefined) {
       return "";
     }
@@ -264,7 +263,6 @@ export class RegistryHTTPClient implements Registry {
   async authenticateECR(ctx: AuthContext): Promise<HTTPContext> {
     const accessKeyId = this.accessKeyId();
     const secretAccessKey = this.secretAccessKey();
-    console.log(`accessKeyId: ${accessKeyId}`);
 
     const ecr = new ECRClient({
       region: this.url.host.split(".")[3],
@@ -278,18 +276,14 @@ export class RegistryHTTPClient implements Registry {
     const response = await ecr.send(command);
 
     if (!response.authorizationData) {
-      console.log("no authorization data found");
       throw new Error("no authorization data found");
     }
 
     const auth = response.authorizationData[0];
     const accessToken = auth.authorizationToken;
     if (!accessToken) {
-      console.log("no access token found");
       throw new Error("no access token found");
     }
-
-    console.log("access token found", accessToken);
 
     return {
       authContext: ctx,
