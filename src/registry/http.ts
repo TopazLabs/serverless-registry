@@ -1,3 +1,4 @@
+import { GetAuthorizationTokenCommand, ECRClient } from "@aws-sdk/client-ecr";
 import { Env } from "../..";
 import { InternalError } from "../errors";
 import { errorString } from "../utils";
@@ -23,6 +24,11 @@ type AuthContext = {
   realm: string;
   scope: string;
 };
+
+export function isECR(url: URL): boolean {
+  const regex = /^https:\/\/(\d+)\.dkr\.ecr\.([a-z0-9-]+)\.amazonaws\.com$/;
+  return regex.test(url.origin);
+}
 
 export function isDockerDotIO(url: URL): boolean {
   const regex = /^https:\/\/([\w\d]+\.)?docker\.io$/;
@@ -154,8 +160,7 @@ export class RegistryHTTPClient implements Registry {
   }
 
   authBase64(): string {
-    const configuration = this.configuration;
-    if (configuration.username === undefined) {
+    if (!("username" in this.configuration) || this.configuration.username === undefined) {
       return "";
     }
 
@@ -163,15 +168,45 @@ export class RegistryHTTPClient implements Registry {
   }
 
   password(): string {
-    const configuration = this.configuration;
-    if (configuration.username === undefined) {
+    if (!("username" in this.configuration) || this.configuration.username === undefined) {
       return "";
     }
 
-    return (this.env as unknown as Record<string, string>)[configuration.password_env] ?? "";
+    if (!("password_env" in this.configuration)) {
+      return "";
+    }
+
+    return (this.env as unknown as Record<string, string>)[this.configuration.password_env] ?? "";
+  }
+
+  accessKeyId(): string {
+    console.log(`configuration: ${JSON.stringify(this.configuration)}`);
+    if (!("accessKeyId_env" in this.configuration) || this.configuration.accessKeyId_env === undefined) {
+      return "";
+    }
+
+    return (this.env as unknown as Record<string, string>)[this.configuration.accessKeyId_env] ?? "";
+  }
+
+  secretAccessKey(): string {
+    if (!("secretAccessKey_env" in this.configuration) || this.configuration.secretAccessKey_env === undefined) {
+      return "";
+    }
+
+    return (this.env as unknown as Record<string, string>)[this.configuration.secretAccessKey_env] ?? "";
   }
 
   async authenticate(namespace: string): Promise<HTTPContext> {
+    if (isECR(this.url)) {
+      const authCtx: AuthContext = {
+        authType: "basic",
+        service: this.url.host,
+        realm: this.url.origin + "/",
+        scope: namespace,
+      };
+      return this.authenticateECR(authCtx);
+    }
+
     const emptyAuthentication = {
       authContext: {
         authType: "none",
@@ -224,6 +259,43 @@ export class RegistryHTTPClient implements Registry {
   ): Promise<false | FinishedUploadObject | RegistryError> {
     // please, just give me chunked things
     return false;
+  }
+
+  async authenticateECR(ctx: AuthContext): Promise<HTTPContext> {
+    const accessKeyId = this.accessKeyId();
+    const secretAccessKey = this.secretAccessKey();
+    console.log(`accessKeyId: ${accessKeyId}`);
+
+    const ecr = new ECRClient({
+      region: this.url.host.split(".")[3],
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+
+    const command = new GetAuthorizationTokenCommand({});
+    const response = await ecr.send(command);
+
+    if (!response.authorizationData) {
+      console.log("no authorization data found");
+      throw new Error("no authorization data found");
+    }
+
+    const auth = response.authorizationData[0];
+    const accessToken = auth.authorizationToken;
+    if (!accessToken) {
+      console.log("no access token found");
+      throw new Error("no access token found");
+    }
+
+    console.log("access token found", accessToken);
+
+    return {
+      authContext: ctx,
+      repository: this.url.pathname,
+      accessToken,
+    };
   }
 
   async authenticateBearerSimple(ctx: AuthContext, params: URLSearchParams): Promise<Response> {
