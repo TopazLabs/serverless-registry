@@ -306,7 +306,7 @@ export class RegistryHTTPClient implements Registry {
       headers: {
         "Accept": "application/json",
         "User-Agent": "Docker-Client/24.0.5 (linux)",
-        ...(this.configuration.username !== undefined ? { Authorization: "Basic " + this.authBase64() } : {}),
+        ...("username" in this.configuration ? { Authorization: "Basic " + this.authBase64() } : {}),
       },
     });
   }
@@ -316,9 +316,9 @@ export class RegistryHTTPClient implements Registry {
       service: ctx.service,
       // explicitely include that we don't want an offline_token.
       scope: `repository:${ctx.scope}:pull,push`,
-      client_id: "r2registry",
-      grant_type: this.configuration.username === undefined ? "none" : "password",
-      password: this.configuration.username === undefined ? "" : this.password(),
+      client_id: "r2registry", 
+      grant_type: "username" in this.configuration ? "password" : "none",
+      password: "username" in this.configuration ? this.password() : "",
     });
     let response = await fetch(ctx.realm, {
       headers: {
