@@ -35,6 +35,10 @@
   "pnpm": {
     "overrides": {
       "@types/node": "18.15.3"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
   }
 }
