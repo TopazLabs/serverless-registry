@@ -104,10 +104,24 @@ export type GetLayerResponse = {
   size: number;
 };
 
+export type ReferrerDescriptor = {
+  mediaType: string;
+  digest: string;
+  size: number;
+  artifactType?: string;
+  annotations?: Record<string, string>;
+};
+
+export type ListReferrersResponse = {
+  manifests: ReferrerDescriptor[];
+  cursor?: string;
+};
+
 // returned by putManifest when it successfully uploads a manifest
 export type PutManifestResponse = {
   digest: string;
   location: string;
+  subject?: string;
 };
 
 // Registry interface to an implementation
@@ -136,11 +150,22 @@ export interface Registry {
   // get a layer stream from the registry
   getLayer(namespace: string, digest: string): Promise<GetLayerResponse | RegistryError>;
 
+  // list referrers for a subject digest
+  listReferrers(
+    namespace: string,
+    digest: string,
+    options?: {
+      artifactType?: string;
+      limit?: number;
+      last?: string;
+    },
+  ): Promise<ListReferrersResponse | RegistryError>;
+
   // put manifest uploads a manifest into the registry
   putManifest(
     namespace: string,
     reference: string,
-    readableStream: ReadableStream<any>,
+    readableStream: ReadableStream,
     options: {
       contentType: string;
       checkLayers?: boolean;
